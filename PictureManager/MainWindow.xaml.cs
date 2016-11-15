@@ -23,25 +23,51 @@ namespace PictureManager
     /// </summary>
     public partial class MainWindow : Window
     {
-
-
         private string ConnectionString = "Data Source=" + Environment.CurrentDirectory + "/pictureFinder.db;Version=3;New=False;Compress=True;";
+        private string pictureBufferPath;
+        private string pictureSavingPath;
         private SQLiteConnection sql_con;
         private SQLiteCommand sql_cmd;
+        FileInfo finishedPicture;
+
+        private void getPictureDir()
+        {
+            FileInfo pictureConfig = new FileInfo("settings.config");
+            StreamReader sr = new StreamReader("settings.config", Encoding.Unicode);
+            while (!sr.EndOfStream)
+            {
+                string temps = sr.ReadLine();
+                if (temps.Count() == 0) continue;
+                if (temps.First() == '#') continue;
+
+                string[] paths = temps.Split(':');
+                if (paths[0] == "PictureBufferPath") pictureBufferPath = paths[1];
+                if (paths[0] == "PictureSavingPath") pictureSavingPath = paths[1];
+            }
+        }
 
         public MainWindow()
         {
             InitializeComponent();
 
+            getPictureDir();
+
+            finishedPicture = new FileInfo("finished.png");
+            if (!finishedPicture.Exists)
+                Properties.Resources.finished.Save("finished.png");
+
             //create a directory to save your pictures
-            DirectoryInfo pathFile = new DirectoryInfo("pictures");
+            DirectoryInfo pathFile = new DirectoryInfo(pictureSavingPath);
             if (!pathFile.Exists)
                 pathFile.Create();
 
             //create a directory to 
-            picFolder = new DirectoryInfo("todo");
+            picFolder = new DirectoryInfo(pictureBufferPath);
             if (!picFolder.Exists)
                 picFolder.Create();
+
+            //select a new picture
+            button_save.RaiseEvent(new RoutedEventArgs(Button.ClickEvent, button_save));
 
             //create tables
             ExecuteQuery("CREATE TABLE IF NOT EXISTS tag(tagname varchar(20), pictureidlist varchar(4000));");
@@ -117,6 +143,8 @@ namespace PictureManager
         {
             FileInfo optFile = null;
             FileInfo[] fileArray = picFolder.GetFiles();
+            if (fileArray.Count() == 0)
+                return null;            
             if (nowShowingPicture == null)
                 optFile = fileArray[0];
             else
@@ -129,9 +157,7 @@ namespace PictureManager
                         pos = i + 1;
                         break;
                     }
-                }
-                if (pos == 0)
-                    return null;
+                }                
                 if (pos == fileArray.Length)
                     return fileArray[0];
                 optFile = fileArray[pos];
@@ -143,9 +169,24 @@ namespace PictureManager
         void selectNextPicture()
         {
             FileInfo nextPic = getNextPicture();
-            if (nextPic == null)
-                return;
-            Media_picture.Source = new Uri(nextPic.FullName);
+            //           if ((nowShowingPicture != null && nextPic.Name == nowShowingPicture.Name) || nextPic == null)
+            //           {
+            //               Media_picture.Source = null;
+            //               Properties.Resources.finished.Save("finished.png");
+            //               FileInfo finishedPicture = new FileInfo("finished.png");
+            //               Media_picture.Source = new Uri(finishedPicture.FullName);
+            //               if (nowShowingPicture != null)
+            //                   nowShowingPicture.Delete();
+            //               nowShowingPicture = null;
+            //               return;
+            //           }
+            if (nextPic != null)
+                Media_picture.Source = new Uri(nextPic.FullName);
+            else
+            {
+                if (Media_picture.Source == null || Media_picture.Source.LocalPath != finishedPicture.FullName)
+                    Media_picture.Source = new Uri(finishedPicture.FullName);
+            }
             if (nowShowingPicture != null)
                 nowShowingPicture.Delete();
             nowShowingPicture = nextPic;
@@ -201,9 +242,26 @@ namespace PictureManager
 
             //save Tags
             int nextID = getMaxID();
-            foreach (string temps in _tags)
+            foreach (string temptag in _tags)
             {
-                if (checkTag(temps))
+                using (sql_con = new SQLiteConnection(ConnectionString))
+                {
+                    sql_con.Open();
+                    sql_cmd = sql_con.CreateCommand();
+                    sql_cmd.CommandText = "select pictureidlist from tag where tagname = @tagname;";
+                    sql_cmd.Parameters.AddWithValue("@tagname", temptag);
+                    SQLiteDataReader sql_reader = sql_cmd.ExecuteReader();
+                    List<string> pictureIDList = new List<string>();
+                    while (sql_reader.Read())
+                    {
+                        pictureIDList.AddRange(Convert.ToString(sql_reader["pictureidlist"]).Split(' '));
+                    }
+                    if (pictureIDList.Contains(nextID.ToString()))
+                    {
+                        continue;
+                    }
+                }
+                if (checkTag(temptag))
                 {
                     using (sql_con = new SQLiteConnection(ConnectionString))
                     {
@@ -212,7 +270,7 @@ namespace PictureManager
                         sql_cmd.CommandText = "update tag set pictureidlist = pictureidlist||@pictureid where tagname = @tagname;";
                         sql_cmd.Parameters.AddRange(new[] {
                            new SQLiteParameter("@pictureid", " "+nextID.ToString()),
-                           new SQLiteParameter("@tagname", temps)
+                           new SQLiteParameter("@tagname", temptag)
                         });
                         sql_cmd.ExecuteNonQuery();
                     }
@@ -225,14 +283,14 @@ namespace PictureManager
                         sql_cmd = sql_con.CreateCommand();
                         sql_cmd.CommandText = "insert into tag(tagname, pictureidlist) values(@tagname, @pictureidlist);";
                         sql_cmd.Parameters.AddRange(new[] {
-                           new SQLiteParameter("@tagname", temps),
+                           new SQLiteParameter("@tagname", temptag),
                            new SQLiteParameter("@pictureidlist", nextID)
                         });
                         sql_cmd.ExecuteNonQuery();
                     }
                 }
             }
-            _file.CopyTo(Environment.CurrentDirectory + "/pictures/" + Md5String + _file.Extension, true);
+            _file.CopyTo(Environment.CurrentDirectory + "/" + pictureSavingPath + "/" + Md5String + _file.Extension, true);
         }
 
         private void textBox_tags_KeyDown(object sender, KeyEventArgs e)
@@ -260,6 +318,7 @@ namespace PictureManager
             string[] taglist = tags.Split(new char[] { ',', '，', ' ', '`', '/', '\\', '、', ';', '；', '<', '>' });
             saveData(nowShowingPicture, taglist);
             selectNextPicture();
+            textBox_tags.Focus();
         }
     }
 }
