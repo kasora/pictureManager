@@ -139,20 +139,19 @@ namespace PictureManager
 
         FileInfo nowShowingPicture;
         DirectoryInfo picFolder;
-        FileInfo getNextPicture()
-        {
-            FileInfo optFile = null;
+        FileInfo getNextPicture(FileInfo _nowShowingPicture)
+        { 
             FileInfo[] fileArray = picFolder.GetFiles();
             if (fileArray.Count() == 0)
                 return null;            
-            if (nowShowingPicture == null)
-                optFile = fileArray[0];
+            if (_nowShowingPicture == null)
+                return fileArray[0];
             else
             {
                 int pos = 0;
                 for (int i = 0; i < fileArray.Length; i++)
                 {
-                    if (fileArray[i].Name == nowShowingPicture.Name)
+                    if (fileArray[i].Name == _nowShowingPicture.Name)
                     {
                         pos = i + 1;
                         break;
@@ -160,36 +159,42 @@ namespace PictureManager
                 }                
                 if (pos == fileArray.Length)
                     return fileArray[0];
-                optFile = fileArray[pos];
-            }
-
-            return optFile;
+                return fileArray[pos];
+            }            
         }
 
         void selectNextPicture()
         {
-            FileInfo nextPic = getNextPicture();
-            //           if ((nowShowingPicture != null && nextPic.Name == nowShowingPicture.Name) || nextPic == null)
-            //           {
-            //               Media_picture.Source = null;
-            //               Properties.Resources.finished.Save("finished.png");
-            //               FileInfo finishedPicture = new FileInfo("finished.png");
-            //               Media_picture.Source = new Uri(finishedPicture.FullName);
-            //               if (nowShowingPicture != null)
-            //                   nowShowingPicture.Delete();
-            //               nowShowingPicture = null;
-            //               return;
-            //           }
+            FileInfo nextPic = getNextPicture(nowShowingPicture);
             if (nextPic != null)
-                Media_picture.Source = new Uri(nextPic.FullName);
+            {
+                if (nowShowingPicture != null)
+                {
+                    // you have dealt with the last picture.
+                    if (nowShowingPicture.FullName == nextPic.FullName)
+                    {
+                        Media_picture.Source = new Uri(finishedPicture.FullName);
+                        nowShowingPicture.Delete();
+                        nowShowingPicture = null;
+                    }
+                    else
+                    {
+                        Media_picture.Source = new Uri(nextPic.FullName);
+                        nowShowingPicture.Delete();
+                        nowShowingPicture = nextPic;
+                    }
+                }
+                else
+                {
+                    Media_picture.Source = new Uri(nextPic.FullName);
+                    nowShowingPicture = nextPic;
+                }
+            }
             else
             {
-                if (Media_picture.Source == null || Media_picture.Source.LocalPath != finishedPicture.FullName)
-                    Media_picture.Source = new Uri(finishedPicture.FullName);
+                Media_picture.Source = new Uri(finishedPicture.FullName);
+                nowShowingPicture = null;
             }
-            if (nowShowingPicture != null)
-                nowShowingPicture.Delete();
-            nowShowingPicture = nextPic;
             textBox_tags.Focus();
             textBox_tags.Text = "";
         }
@@ -244,6 +249,9 @@ namespace PictureManager
             int nextID = getMaxID();
             foreach (string temptag in _tags)
             {
+                if (temptag == "")
+                    continue;
+
                 using (sql_con = new SQLiteConnection(ConnectionString))
                 {
                     sql_con.Open();
