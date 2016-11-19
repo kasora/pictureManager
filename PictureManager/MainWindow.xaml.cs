@@ -118,7 +118,7 @@ namespace PictureManager
             return maxID;
         }
 
-        bool checkTag(string tagname)
+        bool checkTag(string _tagName)
         {
             using (sql_con = new SQLiteConnection(ConnectionString))
             {
@@ -126,10 +126,10 @@ namespace PictureManager
                 sql_cmd = sql_con.CreateCommand();
                 sql_cmd.CommandText = "select tagname from tag where tagname = @tagname;";
                 sql_cmd.Parameters.AddRange(new[] {
-                           new SQLiteParameter("@tagname", tagname)
+                           new SQLiteParameter("@tagname", _tagName)
                        });
                 sql_cmd.ExecuteNonQuery();
-                IDataReader sql_reader = sql_cmd.ExecuteReader();
+                SQLiteDataReader sql_reader = sql_cmd.ExecuteReader();
                 bool tagExist = false;
                 while (sql_reader.Read())
                     tagExist = true;
@@ -199,15 +199,33 @@ namespace PictureManager
             textBox_tags.Text = "";
         }
 
-        string bytesToString(byte[] md5Bytes)
+        string bytesToString(byte[] _md5Bytes)
         {
             string opt = "";
-            foreach (byte tempbyte in md5Bytes)
+            foreach (byte tempbyte in _md5Bytes)
             {
                 string temps = Convert.ToString(tempbyte, 16).ToString();
                 opt += temps;
             }
             return opt;
+        }
+
+        List<string> getPictureListByTag(string _tagName)
+        {
+            List<string> pictureIDList = new List<string>();
+            using (sql_con = new SQLiteConnection(ConnectionString))
+            {
+                sql_con.Open();
+                sql_cmd = sql_con.CreateCommand();
+                sql_cmd.CommandText = "select pictureidlist from tag where tagname = @tagname;";
+                sql_cmd.Parameters.AddWithValue("@tagname", _tagName);
+                SQLiteDataReader sql_reader = sql_cmd.ExecuteReader();
+                while (sql_reader.Read())
+                {
+                    pictureIDList.AddRange(Convert.ToString(sql_reader["pictureidlist"]).Split(' '));
+                }
+            }
+            return pictureIDList;
         }
 
         void saveData(FileInfo _file, string[] _tags)
@@ -223,52 +241,53 @@ namespace PictureManager
                 byte[] bytemd5 = fileMD5.ComputeHash(picStream);
                 Md5String = bytesToString(bytemd5);
             }
-
-            //insert data
-            //TODO: make it to updata Tags rather than delete it.
-            ExecuteQuery("delete from picture where picturehash='" + Md5String + "';");
-
-            //add picture's info to database
+            
+            int pictureID = -1;
             using (sql_con = new SQLiteConnection(ConnectionString))
             {
                 sql_con.Open();
-                sql_cmd = new SQLiteCommand("insert into picture(picturehash,owner) values(@picturehash,@owner)", sql_con);
+                sql_cmd = sql_con.CreateCommand();
+                sql_cmd.CommandText = "select pictureid from picture where picturehash = @picturehash;";
                 sql_cmd.Parameters.AddWithValue("@picturehash", Md5String);
-                sql_cmd.Parameters.AddWithValue("@owner", "1");
-                try
+                SQLiteDataReader sql_reader = sql_cmd.ExecuteReader();
+                while (sql_reader.Read())
                 {
-                    sql_cmd.ExecuteNonQuery();
+                    pictureID = Convert.ToInt32(sql_reader["pictureid"]);
                 }
-                catch (Exception ex)
+            }
+
+            if (pictureID == -1)
+            {
+                //add picture's info to database
+                using (sql_con = new SQLiteConnection(ConnectionString))
                 {
-                    throw ex;
+                    sql_con.Open();
+                    sql_cmd = new SQLiteCommand("insert into picture(picturehash,owner) values(@picturehash,@owner)", sql_con);
+                    sql_cmd.Parameters.AddWithValue("@picturehash", Md5String);
+                    sql_cmd.Parameters.AddWithValue("@owner", "1");
+                    try
+                    {
+                        sql_cmd.ExecuteNonQuery();
+                    }
+                    catch (Exception ex)
+                    {
+                        throw ex;
+                    }
                 }
             }
 
             //save Tags
-            int nextID = getMaxID();
+            int nextID = pictureID == -1 ? getMaxID() : pictureID;
             foreach (string temptag in _tags)
             {
+                // illegal tag
                 if (temptag == "")
                     continue;
 
-                using (sql_con = new SQLiteConnection(ConnectionString))
-                {
-                    sql_con.Open();
-                    sql_cmd = sql_con.CreateCommand();
-                    sql_cmd.CommandText = "select pictureidlist from tag where tagname = @tagname;";
-                    sql_cmd.Parameters.AddWithValue("@tagname", temptag);
-                    SQLiteDataReader sql_reader = sql_cmd.ExecuteReader();
-                    List<string> pictureIDList = new List<string>();
-                    while (sql_reader.Read())
-                    {
-                        pictureIDList.AddRange(Convert.ToString(sql_reader["pictureidlist"]).Split(' '));
-                    }
-                    if (pictureIDList.Contains(nextID.ToString()))
-                    {
-                        continue;
-                    }
-                }
+                // this picture is already belong to this tag.
+                if (getPictureListByTag(temptag).Contains(nextID.ToString()))
+                    continue;
+
                 if (checkTag(temptag))
                 {
                     using (sql_con = new SQLiteConnection(ConnectionString))
