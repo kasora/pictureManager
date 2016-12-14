@@ -15,6 +15,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Data;
 using System.Data.SQLite;
+using System.Threading;
 
 namespace PictureManager
 {
@@ -29,6 +30,7 @@ namespace PictureManager
         private SQLiteConnection sql_con;
         private SQLiteCommand sql_cmd;
         FileInfo finishedPicture;
+        Thread thread_getMD5;
 
         private void getProgramInfo()
         {
@@ -232,20 +234,15 @@ namespace PictureManager
             return pictureIDList;
         }
 
+        string nowShowingMD5;
         void saveData(FileInfo _file, string[] _tags)
         {
             if (_file == null)
                 return;
 
-            //get picture's md5
-            System.Security.Cryptography.MD5 fileMD5 = new System.Security.Cryptography.MD5CryptoServiceProvider();
-            string Md5String;
-            using (FileStream picStream = new FileStream(_file.FullName, FileMode.Open))
-            {
-                byte[] bytemd5 = fileMD5.ComputeHash(picStream);
-                Md5String = bytesToString(bytemd5);
-            }
-            
+            thread_getMD5.Join();
+            string Md5String = nowShowingMD5;
+
             int pictureID = -1;
             using (sql_con = new SQLiteConnection(ConnectionString))
             {
@@ -325,6 +322,21 @@ namespace PictureManager
             _file.CopyTo(Environment.CurrentDirectory + "/" + pictureSavingPath + "/" + Md5String + _file.Extension, true);
         }
 
+        private void getNowShowingMD5()
+        {
+            //get picture's md5
+            System.Security.Cryptography.MD5 fileMD5 = new System.Security.Cryptography.MD5CryptoServiceProvider();
+            string Md5String;
+            if (nowShowingPicture == null)
+                return;
+            using (FileStream picStream = new FileStream(nowShowingPicture.FullName, FileMode.Open))
+            {
+                byte[] bytemd5 = fileMD5.ComputeHash(picStream);
+                Md5String = bytesToString(bytemd5);
+            }
+            nowShowingMD5 = Md5String;
+        }
+
         private void textBox_tags_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
@@ -350,6 +362,8 @@ namespace PictureManager
             string[] taglist = tags.Split(new char[] { ',', '，', ' ', '`', '/', '\\', '、', ';', '；', '<', '>' });
             saveData(nowShowingPicture, taglist);
             selectNextPicture();
+            thread_getMD5 = new Thread(new ThreadStart(getNowShowingMD5));
+            thread_getMD5.Start();
             textBox_tags.Focus();
         }
     }
