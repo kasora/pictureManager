@@ -12,7 +12,14 @@
             <ColumnDefinition Width="229*"/>
         </Grid.ColumnDefinitions>
         <TextBox x:Name="textBox_tags" HorizontalAlignment="Left" Height="23" Margin="10,287,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="550" TextChanged="textBox_tags_TextChanged" KeyDown="textBox_tags_KeyDown" Grid.ColumnSpan="2"/>
-        <ListBox x:Name="listBox_shower" HorizontalAlignment="Left" Height="272" Margin="10,10,0,0" VerticalAlignment="Top" Width="550" Grid.ColumnSpan="2"/>
-
+        <ListBox x:Name="listBox_shower" HorizontalAlignment="Left" Height="272" Margin="10,10,0,0" VerticalAlignment="Top" Width="550" Grid.ColumnSpan="2" ScrollViewer.HorizontalScrollBarVisibility="Disabled" >
+            <ListBox.Template>
+                <ControlTemplate TargetType="{x:Type ListBox}">
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                        <WrapPanel Orientation="Horizontal" IsItemsHost="True" ScrollViewer.CanContentScroll="True"/>
+                    </ScrollViewer>
+                </ControlTemplate>
+            </ListBox.Template>
+        </ListBox>
     </Grid>
 </Window>

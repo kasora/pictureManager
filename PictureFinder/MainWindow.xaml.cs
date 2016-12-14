@@ -209,14 +209,43 @@ namespace PictureFinder
                 tempItem.HorizontalAlignment = HorizontalAlignment.Left;
                 tempItem.VerticalAlignment = VerticalAlignment.Top;
                 tempItem.Content = tempMedia;
+                tempItem.Selected += ListBoxItem_Selected;
                 listBox_shower.Items.Add(tempItem);
             }
+        }
+
+        private void ListBoxItem_Selected(object sender, RoutedEventArgs e)
+        {
+            string path = ((sender as ListBoxItem).Content as MediaElement).Source.AbsolutePath;
+            SetImageToClipbord(path);
         }
 
         //some action will stop gif, jump to next ms can fix it.
         private void Media_picture_MediaEnded(object sender, RoutedEventArgs e)
         {
             ((MediaElement)sender).Position = ((MediaElement)sender).Position.Add(TimeSpan.FromMilliseconds(1));
+        }
+
+        //It's magic 
+        public void SetImageToClipbord(string p_File)
+        {
+            var GifFilePath = p_File;
+            Clipboard.SetText(string.Format(
+                @"Version:0.9
+                StartHTML:00000176
+                EndHTML:00000326
+                StartFragment:00000210
+                EndFragment:00000290
+                SourceURL:file:///
+                <html><body>
+                <!--StartFragment-->
+                <p><img src=""file:///{0}"" /></p>
+                <!--EndFragment-->
+                </body>
+                </html>
+                ",
+                GifFilePath.Replace("\\", "/")), 
+                TextDataFormat.Html);
         }
     }
 }

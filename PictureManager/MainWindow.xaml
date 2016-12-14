@@ -5,15 +5,17 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PictureManager"
         mc:Ignorable="d"
-        Title="MainWindow" Height="350" Width="525">
+        Title="MainWindow" Height="363.881" Width="531.941">
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="269*"/>
+            <RowDefinition Height="99*"/>
+            <RowDefinition Height="63*"/>
+            <RowDefinition Height="107*"/>
             <RowDefinition Height="50*"/>
         </Grid.RowDefinitions>
-        <TextBox x:Name="textBox_tags" HorizontalAlignment="Left" Height="23" Margin="10,17.541,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="417" KeyDown="textBox_tags_KeyDown" Grid.Row="1"/>
-        <Button x:Name="button_save" Content="保存" HorizontalAlignment="Left" Margin="432,18.541,0,0" VerticalAlignment="Top" Width="75" Click="button_save_Click" Grid.Row="1"/>
-        <MediaElement x:Name="Media_picture" HorizontalAlignment="Left" Height="272" Margin="10,10,0,0" VerticalAlignment="Top" Width="497" MediaEnded="Media_picture_MediaEnded" Grid.RowSpan="2"/>
+        <TextBox x:Name="textBox_tags" HorizontalAlignment="Left" Height="23" Margin="10,19,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="417" KeyDown="textBox_tags_KeyDown" Grid.Row="3"/>
+        <Button x:Name="button_save" Content="保存" HorizontalAlignment="Left" Margin="432,21,0,0" VerticalAlignment="Top" Width="75" Click="button_save_Click" Grid.Row="3"/>
+        <MediaElement x:Name="Media_picture" HorizontalAlignment="Left" Height="282" Margin="10,3,0,0" VerticalAlignment="Top" Width="497" MediaEnded="Media_picture_MediaEnded" Grid.RowSpan="4"/>
 
     </Grid>
 </Window>
