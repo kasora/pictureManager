@@ -7,9 +7,13 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="350" Width="525">
     <Grid>
-        <TextBox x:Name="textBox_tags" HorizontalAlignment="Left" Height="23" Margin="10,287,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="417" KeyDown="textBox_tags_KeyDown"/>
-        <Button x:Name="button_save" Content="Button" HorizontalAlignment="Left" Margin="432,288,0,0" VerticalAlignment="Top" Width="75" Click="button_save_Click"/>
-        <MediaElement x:Name="Media_picture" HorizontalAlignment="Left" Height="272" Margin="10,10,0,0" VerticalAlignment="Top" Width="497" MediaEnded="Media_picture_MediaEnded"/>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="269*"/>
+            <RowDefinition Height="50*"/>
+        </Grid.RowDefinitions>
+        <TextBox x:Name="textBox_tags" HorizontalAlignment="Left" Height="23" Margin="10,17.541,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="417" KeyDown="textBox_tags_KeyDown" Grid.Row="1"/>
+        <Button x:Name="button_save" Content="保存" HorizontalAlignment="Left" Margin="432,18.541,0,0" VerticalAlignment="Top" Width="75" Click="button_save_Click" Grid.Row="1"/>
+        <MediaElement x:Name="Media_picture" HorizontalAlignment="Left" Height="272" Margin="10,10,0,0" VerticalAlignment="Top" Width="497" MediaEnded="Media_picture_MediaEnded" Grid.RowSpan="2"/>
 
     </Grid>
 </Window>

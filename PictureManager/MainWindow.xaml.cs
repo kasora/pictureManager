@@ -30,7 +30,7 @@ namespace PictureManager
         private SQLiteCommand sql_cmd;
         FileInfo finishedPicture;
 
-        private void getPictureDir()
+        private void getProgramInfo()
         {
             FileInfo pictureConfig = new FileInfo("settings.config");
             StreamReader sr = new StreamReader("settings.config", Encoding.Unicode);
@@ -39,8 +39,12 @@ namespace PictureManager
                 string temps = sr.ReadLine();
                 if (temps.Count() == 0) continue;
                 if (temps.First() == '#') continue;
-
                 string[] paths = temps.Split(':');
+                if (paths.Length == 1)
+                {
+                    MessageBox.Show("Config file is error! \nPlease check your config file.");
+                    continue;
+                }
                 if (paths[0] == "PictureBufferPath") pictureBufferPath = paths[1];
                 if (paths[0] == "PictureSavingPath") pictureSavingPath = paths[1];
             }
@@ -50,16 +54,16 @@ namespace PictureManager
         {
             InitializeComponent();
 
-            getPictureDir();
+            getProgramInfo();
 
             finishedPicture = new FileInfo("finished.png");
             if (!finishedPicture.Exists)
                 Properties.Resources.finished.Save("finished.png");
 
             //create a directory to save your pictures
-            DirectoryInfo pathFile = new DirectoryInfo(pictureSavingPath);
-            if (!pathFile.Exists)
-                pathFile.Create();
+            DirectoryInfo pathFileDirc = new DirectoryInfo(pictureSavingPath);
+            if (!pathFileDirc.Exists)
+                pathFileDirc.Create();
 
             //create a directory to 
             picFolder = new DirectoryInfo(pictureBufferPath);
@@ -71,7 +75,7 @@ namespace PictureManager
 
             //create tables
             ExecuteQuery("CREATE TABLE IF NOT EXISTS tag(tagname varchar(20), pictureidlist varchar(4000));");
-            ExecuteQuery("CREATE TABLE IF NOT EXISTS picture(picturehash varchar(100), pictureid integer primary key, owner varchar(20));");
+            ExecuteQuery("CREATE TABLE IF NOT EXISTS picture(picturehash varchar(100), pictureid integer primary key, owner varchar(20), picturetype varchar(20));");
         }
 
         private void ExecuteQuery(string txtQuery)
@@ -126,8 +130,8 @@ namespace PictureManager
                 sql_cmd = sql_con.CreateCommand();
                 sql_cmd.CommandText = "select tagname from tag where tagname = @tagname;";
                 sql_cmd.Parameters.AddRange(new[] {
-                           new SQLiteParameter("@tagname", _tagName)
-                       });
+                   new SQLiteParameter("@tagname", _tagName)
+                });
                 sql_cmd.ExecuteNonQuery();
                 SQLiteDataReader sql_reader = sql_cmd.ExecuteReader();
                 bool tagExist = false;
@@ -262,9 +266,10 @@ namespace PictureManager
                 using (sql_con = new SQLiteConnection(ConnectionString))
                 {
                     sql_con.Open();
-                    sql_cmd = new SQLiteCommand("insert into picture(picturehash,owner) values(@picturehash,@owner)", sql_con);
+                    sql_cmd = new SQLiteCommand("insert into picture(picturehash, owner, picturetype) values(@picturehash,@owner,@picturetype)", sql_con);
                     sql_cmd.Parameters.AddWithValue("@picturehash", Md5String);
                     sql_cmd.Parameters.AddWithValue("@owner", "1");
+                    sql_cmd.Parameters.AddWithValue("@picturetype", _file.Extension);
                     try
                     {
                         sql_cmd.ExecuteNonQuery();
@@ -333,7 +338,7 @@ namespace PictureManager
             }
         }
 
-        //some action will stop gif, jump to next ms can fix it.
+        // Repeat it plz my dear program.
         private void Media_picture_MediaEnded(object sender, RoutedEventArgs e)
         {
             ((MediaElement)sender).Position = ((MediaElement)sender).Position.Add(TimeSpan.FromMilliseconds(1));

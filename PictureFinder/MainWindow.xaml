@@ -5,10 +5,14 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PictureFinder"
         mc:Ignorable="d"
-        Title="MainWindow" Height="350" Width="525">
+        Title="MainWindow" Height="350" Width="580">
     <Grid>
-        <TextBox x:Name="textBox_tags" HorizontalAlignment="Left" Height="23" Margin="10,287,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="497" TextChanged="textBox_tags_TextChanged"/>
-        <ListBox x:Name="listBox" HorizontalAlignment="Left" Height="272" Margin="10,10,0,0" VerticalAlignment="Top" Width="497"/>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="288*"/>
+            <ColumnDefinition Width="229*"/>
+        </Grid.ColumnDefinitions>
+        <TextBox x:Name="textBox_tags" HorizontalAlignment="Left" Height="23" Margin="10,287,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="550" TextChanged="textBox_tags_TextChanged" KeyDown="textBox_tags_KeyDown" Grid.ColumnSpan="2"/>
+        <ListBox x:Name="listBox_shower" HorizontalAlignment="Left" Height="272" Margin="10,10,0,0" VerticalAlignment="Top" Width="550" Grid.ColumnSpan="2"/>
 
     </Grid>
 </Window>
