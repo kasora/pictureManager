@@ -30,7 +30,7 @@ namespace PictureManager
         private SQLiteConnection sql_con;
         private SQLiteCommand sql_cmd;
         FileInfo finishedPicture;
-        Thread thread_getMD5;
+        FileInfo savingPicture;
 
         private void getProgramInfo()
         {
@@ -146,63 +146,42 @@ namespace PictureManager
         FileInfo nowShowingPicture;
         DirectoryInfo picFolder;
         FileInfo getNextPicture(FileInfo _nowShowingPicture)
-        { 
+        {
             FileInfo[] fileArray = picFolder.GetFiles();
             if (fileArray.Count() == 0)
-                return null;            
+                return null;
             if (_nowShowingPicture == null)
                 return fileArray[0];
-            else
+
+            int pos = 0;
+            for (int i = 0; i < fileArray.Length; i++)
             {
-                int pos = 0;
-                for (int i = 0; i < fileArray.Length; i++)
+                if (fileArray[i].Name == _nowShowingPicture.Name)
                 {
-                    if (fileArray[i].Name == _nowShowingPicture.Name)
-                    {
-                        pos = i + 1;
-                        break;
-                    }
-                }                
-                if (pos == fileArray.Length)
-                    return fileArray[0];
-                return fileArray[pos];
-            }            
+                    pos = i;
+                    break;
+                }
+            }
+            if (fileArray.Length == 1 && pos == 0)
+                return null;
+            if (pos == fileArray.Length - 1)
+                return fileArray[0];
+            return fileArray[pos + 1];
         }
 
-        void selectNextPicture()
+        void showNextPicture()
         {
             FileInfo nextPic = getNextPicture(nowShowingPicture);
             if (nextPic != null)
             {
-                if (nowShowingPicture != null)
-                {
-                    // you have dealt with the last picture.
-                    if (nowShowingPicture.FullName == nextPic.FullName)
-                    {
-                        Media_picture.Source = new Uri(finishedPicture.FullName);
-                        nowShowingPicture.Delete();
-                        nowShowingPicture = null;
-                    }
-                    else
-                    {
-                        Media_picture.Source = new Uri(nextPic.FullName);
-                        nowShowingPicture.Delete();
-                        nowShowingPicture = nextPic;
-                    }
-                }
-                else
-                {
-                    Media_picture.Source = new Uri(nextPic.FullName);
-                    nowShowingPicture = nextPic;
-                }
+                Media_picture.Source = new Uri(nextPic.FullName);
+                nowShowingPicture = nextPic;
             }
             else
             {
                 Media_picture.Source = new Uri(finishedPicture.FullName);
                 nowShowingPicture = null;
             }
-            textBox_tags.Focus();
-            textBox_tags.Text = "";
         }
 
         string bytesToString(byte[] _md5Bytes)
@@ -234,14 +213,17 @@ namespace PictureManager
             return pictureIDList;
         }
 
-        string nowShowingMD5;
-        void saveData(FileInfo _file, string[] _tags)
+        void saveData(object _pictureInfo)
         {
-            if (_file == null)
-                return;
+            if (_pictureInfo == null) return;
+            if (!(_pictureInfo is PictureInfo)) return;
+            if (!(_pictureInfo as PictureInfo).Exists) return;
+            FileInfo picture;
+            List<string> taglist;
+            picture = new FileInfo((_pictureInfo as PictureInfo).path);
+            taglist = (_pictureInfo as PictureInfo).taglist;
 
-            thread_getMD5.Join();
-            string Md5String = nowShowingMD5;
+            string Md5String = getMD5(picture);
 
             int pictureID = -1;
             using (sql_con = new SQLiteConnection(ConnectionString))
@@ -266,21 +248,14 @@ namespace PictureManager
                     sql_cmd = new SQLiteCommand("insert into picture(picturehash, owner, picturetype) values(@picturehash,@owner,@picturetype)", sql_con);
                     sql_cmd.Parameters.AddWithValue("@picturehash", Md5String);
                     sql_cmd.Parameters.AddWithValue("@owner", "1");
-                    sql_cmd.Parameters.AddWithValue("@picturetype", _file.Extension);
-                    try
-                    {
-                        sql_cmd.ExecuteNonQuery();
-                    }
-                    catch (Exception ex)
-                    {
-                        throw ex;
-                    }
+                    sql_cmd.Parameters.AddWithValue("@picturetype", picture.Extension);
+                    sql_cmd.ExecuteNonQuery();
                 }
             }
 
             //save Tags
             int nextID = pictureID == -1 ? getMaxID() : pictureID;
-            foreach (string temptag in _tags)
+            foreach (string temptag in taglist)
             {
                 // illegal tag
                 if (temptag == "")
@@ -298,8 +273,8 @@ namespace PictureManager
                         sql_cmd = sql_con.CreateCommand();
                         sql_cmd.CommandText = "update tag set pictureidlist = pictureidlist||@pictureid where tagname = @tagname;";
                         sql_cmd.Parameters.AddRange(new[] {
-                           new SQLiteParameter("@pictureid", " "+nextID.ToString()),
-                           new SQLiteParameter("@tagname", temptag)
+                            new SQLiteParameter("@pictureid", " "+nextID.ToString()),
+                            new SQLiteParameter("@tagname", temptag)
                         });
                         sql_cmd.ExecuteNonQuery();
                     }
@@ -312,29 +287,30 @@ namespace PictureManager
                         sql_cmd = sql_con.CreateCommand();
                         sql_cmd.CommandText = "insert into tag(tagname, pictureidlist) values(@tagname, @pictureidlist);";
                         sql_cmd.Parameters.AddRange(new[] {
-                           new SQLiteParameter("@tagname", temptag),
-                           new SQLiteParameter("@pictureidlist", nextID)
+                            new SQLiteParameter("@tagname", temptag),
+                            new SQLiteParameter("@pictureidlist", nextID)
                         });
                         sql_cmd.ExecuteNonQuery();
                     }
                 }
             }
-            _file.CopyTo(Environment.CurrentDirectory + "/" + pictureSavingPath + "/" + Md5String + _file.Extension, true);
+            picture.CopyTo(Environment.CurrentDirectory + "/" + pictureSavingPath + "/" + Md5String + picture.Extension, true);
+            picture.Delete();
         }
 
-        private void getNowShowingMD5()
+        private string getMD5(FileInfo _picture)
         {
             //get picture's md5
             System.Security.Cryptography.MD5 fileMD5 = new System.Security.Cryptography.MD5CryptoServiceProvider();
             string Md5String;
-            if (nowShowingPicture == null)
-                return;
-            using (FileStream picStream = new FileStream(nowShowingPicture.FullName, FileMode.Open))
+            if (_picture == null)
+                return null;
+            using (FileStream picStream = new FileStream(_picture.FullName, FileMode.Open))
             {
                 byte[] bytemd5 = fileMD5.ComputeHash(picStream);
                 Md5String = bytesToString(bytemd5);
             }
-            nowShowingMD5 = Md5String;
+            return Md5String;
         }
 
         private void textBox_tags_KeyDown(object sender, KeyEventArgs e)
@@ -350,7 +326,7 @@ namespace PictureManager
             }
         }
 
-        // Repeat it plz my dear program.
+        // Repeat it plz my dear picture.
         private void Media_picture_MediaEnded(object sender, RoutedEventArgs e)
         {
             ((MediaElement)sender).Position = ((MediaElement)sender).Position.Add(TimeSpan.FromMilliseconds(1));
@@ -358,13 +334,41 @@ namespace PictureManager
 
         private void button_save_Click(object sender, RoutedEventArgs e)
         {
-            string tags = textBox_tags.Text;
-            string[] taglist = tags.Split(new char[] { ',', '，', ' ', '`', '/', '\\', '、', ';', '；', '<', '>' });
-            saveData(nowShowingPicture, taglist);
-            selectNextPicture();
-            thread_getMD5 = new Thread(new ThreadStart(getNowShowingMD5));
-            thread_getMD5.Start();
+            if (nowShowingPicture == null)
+            {
+                showNextPicture();
+                return;
+            }
+            string tagtext = textBox_tags.Text;
+            string[] tags = tagtext.Split(new char[] { ',', '，', ' ', '`', '/', '\\', '、', ';', '；', '<', '>' });
+            List<string> taglist = new List<string>();
+            for (int i = 0; i < tags.Count(); i++)
+            {
+                if (tags[i] != "")
+                    taglist.Add(tags[i]);
+            }
+
+            if (taglist.Count() == 0) return;
+
+            PictureInfo tempinfo = new PictureInfo(taglist, nowShowingPicture.FullName);
+            ThreadPool.QueueUserWorkItem(new WaitCallback(saveData), tempinfo);
+
+            showNextPicture();
             textBox_tags.Focus();
+            textBox_tags.Text = "";
+        }
+    }
+    class PictureInfo
+    {
+        public List<string> taglist;
+        public string path;
+        public bool Exists;
+
+        public PictureInfo(List<string> _taglist, string _path)
+        {
+            taglist = _taglist;
+            path = _path;
+            Exists = new FileInfo(path).Exists;
         }
     }
 }
