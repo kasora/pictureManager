@@ -16,14 +16,6 @@ app.use(bodyParser.json({ type: 'application/*+json' }));
 app.use(bodyParser.raw({ type: 'application/vnd.custom-type' }));
 app.use(bodyParser.text({ type: 'text/html' }));
 
-let printLog = (req, res, next) => {
-  if (config.log === "console") {
-    console.log(`A ${req.method} request to ${req._parsedUrl.path}.`);
-  }
-  next();
-}
-
-app.use(printLog);
 app.use(express.static(__dirname + '/static'));
 app.use(require('./api/router'));
 app.get('*', function (req, res) {

@@ -254,3 +254,5 @@ testmanager/
 server/node_modules
 server/.vscode
 server/config.js
+server/static/pictures
+server/static/favicon.ico

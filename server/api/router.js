@@ -124,6 +124,15 @@ let compatibleParams = (req, res, next) => {
     Object.assign(req.query, req.body);
     next();
 }
+let printLog = (req, res, next) => {
+  if (config.log === "console") {
+    console.log(`A ${req.method} request to ${req._parsedUrl.path}.`);
+    console.log(req.query);
+  }
+  next();
+}
+
+router.use(printLog);
 
 router.use(compatibleParams);
 router.use(replaceMongoId);

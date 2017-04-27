@@ -1,0 +1,35 @@
+<!DOCTYPE>
+<html>
+
+<head></head>
+
+<body>
+
+  <input type="file" name="myfile" id="myfile" />
+  <input type="submit" value="上传" id="submit" />
+  <p id="result"></p>
+
+  <script>
+    function uploadFile() {
+      var formData = new FormData();
+      var files = document.getElementById("myfile").files;
+      formData.enctype = "multipart/form-data";
+      var fileArray = [].slice.call(files, 0);//类数组转换为数组
+      fileArray.forEach(function (file) {
+        formData.append("myfile", file);//循环遍历把文件对象插到formData对象上
+      });
+      var xhr = new XMLHttpRequest();
+      xhr.open("post", "/picture", true);//发送post请求到/picture
+      xhr.onload = function (e) {
+        if (this.status == 200) {
+          document.getElementById("result").innerHTML = this.response;
+        }
+      };
+      xhr.send(formData);
+    }
+    var input = document.getElementById("submit");
+    input.onclick = uploadFile;//绑定事件
+  </script>
+</body>
+
+</html>

@@ -367,6 +367,26 @@ let getTokenByToken = (token) => {
 
 
 
+let insertPicture = async (pictureInfo) => {
+    let { db, collection } = await getCollection(config.picture);
+    return new Promise((resolve, reject) => {
+        collection.insertOne(pictureInfo).then((err, result) => {
+            if (err) {
+                reject("insert picture error");
+            }
+            else {
+                resolve({
+                    _pid: result.ops[0]._id,
+                });
+            }
+            db.close();
+        });
+    });
+}
+
+
+
+
 let setAdmin = (email) => {
     return getCollection(config.user).then(({ db, collection }) => {
         return new Promise((resolve, reject) => {
@@ -431,6 +451,8 @@ module.exports = {
     renewTokenByToken,
     getTokenByUid,
     getTokenByToken,
+
+    insertPicture,
 
     setAdmin,
     deAdmin,
