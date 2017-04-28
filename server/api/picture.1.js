@@ -47,24 +47,17 @@ let uploadPicture = (req, res) => {
     console.error('上传失败：', err.message);
     res.status(500).send({})
   }).parse(req, function (err, fields, files) {
-    if (err) throw err;
-    var filesUrl = [];
-    var errCount = 0;
-    var keys = Object.keys(files);
-    keys.forEach(function (key) {
-      var filePath = files[key].path;
-      var fileExt = filePath.substring(filePath.lastIndexOf('.'));
-      if (('.jpg.jpeg.png.gif').indexOf(fileExt.toLowerCase()) === -1) {
-        errCount += 1;
-      } else {
-        //以当前时间戳对上传文件进行重命名
-        var fileName = new Date().getTime() + fileExt;
-        var targetFile = path.join(targetDir, fileName);
-        //移动文件
-        fs.renameSync(filePath, targetFile);
-        // 文件的Url（相对路径）
-        filesUrl.push('/upload/' + fileName)
-      }
+    if (err) {
+      console.log(err);
+    }
+    console.log(fields);
+    console.log(files);
+    allFile.forEach(function (file, index) {
+      var fieldName = file[0];
+      var types = file[1].name.split('.');
+      var date = new Date();
+      var ms = Date.parse(date);
+      fs.renameSync(file[1].path, form.uploadDir + "/" + types[0] + "." + String(types[types.length - 1]));//重命名文件，默认的文件名是带有一串编码的，我们要把它还原为它原先的名字。
     });
   });
 }
