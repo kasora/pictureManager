@@ -11,7 +11,7 @@ const database = require('./dataoption/mongoway');
 let router = express.Router();
 
 let checkInPicture = async (picture, user) => {
-  let path = await database.insertPicture({
+  let _pid = await database.insertPicture({
     type: picture.type,
     valid: 1,
     user: user._id,
@@ -19,6 +19,7 @@ let checkInPicture = async (picture, user) => {
     group: picture.group,
     tag: picture.tag,
   });
+  return _pid.toString();
 }
 
 let uploadPicture = (req, res) => {

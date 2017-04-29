@@ -370,17 +370,16 @@ let getTokenByToken = (token) => {
 let insertPicture = async (pictureInfo) => {
     let { db, collection } = await getCollection(config.picture);
     return new Promise((resolve, reject) => {
-        collection.insertOne(pictureInfo).then((err, result) => {
-            if (err) {
-                reject("insert picture error");
-            }
-            else {
-                resolve({
-                    _pid: result.ops[0]._id,
-                });
-            }
+        collection.insertOne(pictureInfo).then((result) => {
+            resolve({
+                _pid: result.ops[0]._id,
+            });
+        }, () => {
+            reject("insert picture error.")
+        }).then(() => {
             db.close();
         });
+
     });
 }
 

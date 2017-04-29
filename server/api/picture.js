@@ -2,6 +2,7 @@
 
 const express = require('express');
 const fs = require('fs');
+const path = require('path');
 const randomstring = require('randomstring');
 var formidable = require('formidable');
 
@@ -10,62 +11,68 @@ const database = require('./dataoption/mongoway');
 
 let router = express.Router();
 
-let checkInPicture = async (picture, user) => {
-  let path = await database.insertPicture({
+let checkInPicture = async (picture) => {
+  let result = await database.insertPicture({
     type: picture.type,
     valid: 1,
-    user: user._id,
+    user: picture._id,
     time: picture.time || Date.now(),
-    group: picture.group,
-    tag: picture.tag,
+    groups: picture.groups || [],
+    tags: picture.tags || [],
   });
+  return result._pid;
 }
 
 let uploadPicture = (req, res) => {
   var form = formidable.IncomingForm({
     encoding: 'utf-8',
-    uploadDir: config.picturePath,
+    uploadDir: config.todoPath,
     keepExtensions: true,
     maxFieldsSize: 2 * 4096 * 4096,
   });
 
   fs.access(config.picturePath, function (err) {
     if (err) {
-      fs.mkdirSync(targetDir);
+      fs.mkdirSync(config.picturePath);
     }
   });
-  fs.access(config.todo, function (err) {
+  fs.access(config.todoPath, function (err) {
     if (err) {
-      fs.mkdirSync(targetDir);
+      fs.mkdirSync(config.todoPath);
     }
   });
 
   var allFile = [];
   form.on('file', function (filed, file) {
-    allFile.push([filed, file]);//收集传过来的所有文件
+    allFile.push([filed, file]);
   }).on('error', function (err) {
     console.error('上传失败：', err.message);
-    res.status(500).send({})
+    res.status(500).send({ err: "upload error." });
   }).parse(req, function (err, fields, files) {
-    if (err) throw err;
-    var filesUrl = [];
+    if (err) {
+      res.status(500).send({ err: "system error." });
+    }
     var errCount = 0;
     var keys = Object.keys(files);
-    keys.forEach(function (key) {
+    keys.forEach(async function (key) {
       var filePath = files[key].path;
       var fileExt = filePath.substring(filePath.lastIndexOf('.'));
-      if (('.jpg.jpeg.png.gif').indexOf(fileExt.toLowerCase()) === -1) {
+      if (('.jpg.png.gif').indexOf(fileExt.toLowerCase()) === -1) {
         errCount += 1;
       } else {
-        //以当前时间戳对上传文件进行重命名
-        var fileName = new Date().getTime() + fileExt;
-        var targetFile = path.join(targetDir, fileName);
-        //移动文件
+        Object.assign(fields, req.query);
+        let picture = {
+          type: fileExt,
+          user: req.query._uid,
+          tags: fields.tags.split(','),
+        }
+        let fileName = await checkInPicture(picture) + fileExt;
+        let targetFile = path.join(config.picturePath, fileName);
+
         fs.renameSync(filePath, targetFile);
-        // 文件的Url（相对路径）
-        filesUrl.push('/upload/' + fileName)
       }
     });
+    res.status(201).send({ status: "success" });
   });
 }
 
