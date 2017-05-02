@@ -45,15 +45,11 @@ let uploadPicture = (req, res) => {
   let allFile = [];
   form.on('file', function (field, file) {
     allFile.push({ field, file });
-  }).on('error', function (err) {
-    console.error('上传失败：', err.message);
-    res.status(500).send({ err: "upload error." });
   }).parse(req, function (err, fields) {
     if (err) {
-      res.status(500).send({ err: "system error." });
+      res.status(400).send({ err: "data error." });
       return;
     }
-
     new Promise((resolve, reject) => {
       let last = allFile.length;
       allFile.forEach(async function ({ field, file }) {

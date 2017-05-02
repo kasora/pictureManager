@@ -127,7 +127,6 @@ let compatibleParams = (req, res, next) => {
 let printLog = (req, res, next) => {
   if (config.log === "console") {
     console.log(`A ${req.method} request to ${req._parsedUrl.path}.`);
-    console.log(req.query);
   }
   next();
 }

@@ -49,7 +49,7 @@ let addUser = (req, res) => {
     email: req.query.email,
     password: req.query.password,
     purview: "user",
-    checked: "false",
+    checked: "true",
     emailToken: randomstring.generate(),
   }
 
