@@ -3,6 +3,7 @@
 const express = require('express');
 const bodyParser = require('body-parser')
 const cookieParser = require('cookie-parser');
+const path = require('path')
 
 const config = require('./config');
 
@@ -18,9 +19,7 @@ app.use(bodyParser.text({ type: 'text/html' }));
 
 app.use(express.static(__dirname + '/static'));
 app.use(require('./api/router'));
-app.get('*', function (req, res) {
-  res.sendFile(path.resolve(__dirname, 'static', 'index.html'));
-})
+//app.get('*', function (req, res) { res.sendFile(path.resolve(__dirname, 'static', 'index.html')); })
 
 app.listen(config.port);
 console.log(`Service started at port ${config.port}.`);

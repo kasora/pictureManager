@@ -1,14 +1,64 @@
 <!DOCTYPE>
 <html>
 
-<head></head>
+<head>
+    <style>
+        .picture {
+            width: 300px;
+            height: 300px;
+            margin: 20px;
+        }
+    </style>
+</head>
 
 <body>
-<form action="/picture" method="post" enctype="multipart/form-data">
-    <input type="text" name="pic1">
-    <input type="file" name="pic1">
-    <input type="submit" value="提交">
-</form>
+    <input type="text" id="tags">
+    <input type="submit" onclick="showpic()" value="提交">
+    <div id='pics'>
+
+    </div>
+    <script>
+        'use strict';
+        function showpic() {
+            let xhr = new XMLHttpRequest();
+            xhr.open('GET', '/picture');
+            xhr.send()
+
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    let pictures = JSON.parse(xhr.responseText);
+                    let opt = [];
+                    let tags = document.getElementById('tags').value.split(' ')
+                    let pics = document.getElementById("pics")
+
+                    while(pics.hasChildNodes()){
+                        pics.removeChild(pics.firstChild)
+                    }
+                    
+
+                    //document.getElementById('pics').innerHTML = xhr.responseText
+                    pictures.forEach(function (item) {
+                        let flag = true
+                        for (let i = 0; i < tags.length; i++) {
+                            if (!item.tags.includes(tags[i])) {
+                                flag = false
+                            }
+                        }
+                        if (flag) {
+                            opt.push("/pictures/" + item._id + item.type)
+                        }
+                    }, this);
+
+                    opt.forEach(function (item) {
+                        let pic = document.createElement("img")
+                        pic.src = item
+                        pic.className = "picture"
+                        document.getElementById("pics").appendChild(pic)
+                    })
+                }
+            }
+        }
+    </script>
 </body>
 
 </html>

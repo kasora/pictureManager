@@ -82,5 +82,11 @@ let uploadPicture = (req, res) => {
   });
 }
 
+let getPicture = async (req, res) => {
+  let pics = await database.getPictures()
+  res.status(200).send(pics)
+}
+
 router.post('/', uploadPicture);
+router.get('/', getPicture)
 module.exports = router;

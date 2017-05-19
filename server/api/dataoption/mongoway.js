@@ -383,6 +383,20 @@ let insertPicture = async (pictureInfo) => {
     });
 }
 
+let getPictures = async () => {
+    let { db, collection } = await getCollection(config.picture);
+    return new Promise((resolve, reject) => {
+        collection.find().toArray(function (err, docs) {
+            if (err) {
+                reject(err)
+            }
+            else {
+                resolve(docs)
+            }
+        })
+    })
+}
+
 
 
 
@@ -452,6 +466,7 @@ module.exports = {
     getTokenByToken,
 
     insertPicture,
+    getPictures,
 
     setAdmin,
     deAdmin,
